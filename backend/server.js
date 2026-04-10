@@ -1,4 +1,3 @@
-
 const express = require('express');
 const Database = require('better-sqlite3');
 const cors = require('cors');
