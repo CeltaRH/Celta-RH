@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Celta RH — Gestão de Candidatos</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --green: #1D9E75; --green-dark: #0F6E56; --green-light: #E1F5EE;
+    --bg: #f8f9fa; --surface: #ffffff; --border: #e2e8f0;
+    --text: #1a202c; --muted: #718096; --radius: 8px; --radius-lg: 12px;
+  }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); font-size: 14px; }
+  .topbar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 1.5rem; display: flex; align-items: center; justify-content: space-between; height: 56px; position: sticky; top: 0; z-index: 10; }
+  .logo { font-size: 17px; font-weight: 600; } .logo span { color: var(--green); }
+  .main { max-width: 1100px; margin: 0 auto; padding: 1.5rem; }
+  .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 1.5rem; }
+  .metric { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1rem 1.25rem; }
+  .metric-val { font-size: 28px; font-weight: 700; color: var(--text); }
+  .metric-lbl { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.25rem; margin-bottom: 1rem; }
+  .tabs { display: flex; gap: 4px; margin-bottom: 1.25rem; border-bottom: 1px solid var(--border); }
+  .tab { padding: 8px 18px; font-size: 13px; cursor: pointer; border-radius: var(--radius) var(--radius) 0 0; color: var(--muted); border: 1px solid transparent; border-bottom: none; background: none; transition: all .15s; }
+  .tab.active { color: var(--green); border-color: var(--border); background: var(--surface); font-weight: 600; border-bottom: 1px solid var(--surface); margin-bottom: -1px; }
+  .panel { display: none; } .panel.active { display: block; }
+  .toolbar { display: flex; gap: 8px; margin-bottom: 1rem; flex-wrap: wrap; align-items: center; }
+  .toolbar input, .toolbar select { padding: 7px 11px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 13px; background: var(--surface); color: var(--text); flex: 1; min-width: 130px; }
+  .toolbar input:focus, .toolbar select:focus { outline: none; border-color: var(--green); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; padding: 9px 12px; color: var(--muted); border-bottom: 1px solid var(--border); font-weight: 500; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+  td { padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  tr:hover td { background: var(--bg); }
+  tr { cursor: pointer; }
+  .badge { display: inline-block; padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+  .badge-novo { background: #EDE9FE; color: #5B21B6; }
+  .badge-contatado { background: #FEF3C7; color: #92400E; }
+  .badge-triagem { background: #DBEAFE; color: #1E40AF; }
+  .badge-entrevista { background: #D1FAE5; color: #065F46; }
+  .badge-aprovado { background: #DCFCE7; color: #166534; }
+  .badge-reprovado { background: #FEE2E2; color: #991B1B; }
+  .badge-desistiu { background: #F3F4F6; color: #374151; }
+  .btn { padding: 8px 16px; border-radius: var(--radius); font-size: 13px; cursor: pointer; border: 1px solid var(--border); background: var(--surface); color: var(--text); transition: all .15s; font-weight: 500; }
+  .btn:hover { background: var(--bg); }
+  .btn-primary { background: var(--green); color: #fff; border-color: var(--green); }
+  .btn-primary:hover { background: var(--green-dark); }
+  .btn-sm { padding: 5px 11px; font-size: 12px; }
+  .btn-danger { border-color: #FECACA; color: #991B1B; }
+  .btn-danger:hover { background: #FEE2E2; }
+  .btn-wpp { background: #25D366; color: #fff; border-color: #25D366; }
+  .btn-wpp:hover { background: #128C7E; border-color: #128C7E; }
+  .tag { font-size: 11px; color: var(--muted); background: var(--bg); padding: 2px 8px; border-radius: 20px; border: 1px solid var(--border); }
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 1rem; }
+  .modal { background: var(--surface); border-radius: var(--radius-lg); border: 1px solid var(--border); padding: 1.5rem; width: 100%; max-width: 480px; max-height: 90vh; overflow-y: auto; }
+  .modal h3 { font-size: 16px; font-weight: 600; margin-bottom: 1.25rem; }
+  .form-row { margin-bottom: 12px; }
+  .form-row label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; font-weight: 500; }
+  .form-row input, .form-row select, .form-row textarea { width: 100%; padding: 8px 11px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 13px; background: var(--surface); color: var(--text); }
+  .form-row input:focus, .form-row select:focus, .form-row textarea:focus { outline: none; border-color: var(--green); }
+  .form-row textarea { resize: vertical; min-height: 72px; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .modal-footer { display: flex; gap: 8px; justify-content: flex-end; margin-top: 1.25rem; padding-top: 1.25rem; border-top: 1px solid var(--border); flex-wrap: wrap; }
+  .detail-section { margin-bottom: 1rem; }
+  .detail-section h4 { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin-bottom: 8px; }
+  .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .detail-item { background: var(--bg); border-radius: var(--radius); padding: 8px 10px; }
+  .detail-item .lbl { font-size: 11px; color: var(--muted); } 
+  .detail-item .val { font-size: 13px; font-weight: 500; margin-top: 2px; word-break: break-all; }
+  .hist-item { padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .hist-item:last-child { border-bottom: none; }
+  .hist-meta { font-size: 11px; color: var(--muted); margin-top: 3px; }
+  .alert { padding: 10px 14px; border-radius: var(--radius); font-size: 13px; margin-bottom: 1rem; }
+  .alert-success { background: var(--green-light); color: var(--green-dark); border: 1px solid #9FE1CB; }
+  .alert-error { background: #FEE2E2; color: #991B1B; border: 1px solid #FECACA; }
+  .hidden { display: none !important; }
+  .empty { text-align: center; padding: 3rem; color: var(--muted); }
+  .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid #ccc; border-top-color: var(--green); border-radius: 50%; animation: spin .6s linear infinite; vertical-align: middle; margin-right: 6px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  a.wpp-link { color: #128C7E; font-weight: 500; text-decoration: none; }
+  a.wpp-link:hover { text-decoration: underline; }
+  @media(max-width: 640px) {
+    .metrics { grid-template-columns: 1fr 1fr; }
+    .form-grid { grid-template-columns: 1fr; }
+    th:nth-child(4), td:nth-child(4) { display: none; }
+    .detail-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo">Celta <span>RH</span></div>
+  <button class="btn btn-primary" onclick="abrirModal('novo')">+ Novo candidato</button>
+</div>
+
+<div class="main">
+  <div id="alert-global" class="hidden"></div>
+
+  <div class="metrics">
+    <div class="metric"><div class="metric-val" id="m-total">—</div><div class="metric-lbl">Total de candidatos</div></div>
+    <div class="metric"><div class="metric-val" id="m-novos">—</div><div class="metric-lbl">Aguardando contato</div></div>
+    <div class="metric"><div class="metric-val" id="m-entrevista">—</div><div class="metric-lbl">Entrevistas agendadas</div></div>
+    <div class="metric"><div class="metric-val" id="m-aprovado">—</div><div class="metric-lbl">Aprovados</div></div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" onclick="trocarAba('candidatos',this)">Candidatos</div>
+    <div class="tab" onclick="trocarAba('vagas',this)">Vagas</div>
+  </div>
+
+  <!-- Aba Candidatos -->
+  <div id="panel-candidatos" class="panel active">
+    <div class="toolbar">
+      <input id="busca" type="text" placeholder="Buscar por nome, e-mail ou vaga..." oninput="buscarCandidatos()">
+      <select id="filtro-status" onchange="buscarCandidatos()">
+        <option value="">Todos os status</option>
+        <option value="novo">Novo</option>
+        <option value="contatado">Contatado</option>
+        <option value="triagem">Em triagem</option>
+        <option value="entrevista">Entrevista agendada</option>
+        <option value="aprovado">Aprovado</option>
+        <option value="reprovado">Reprovado</option>
+        <option value="desistiu">Desistiu</option>
+      </select>
+      <select id="filtro-vaga" onchange="buscarCandidatos()">
+        <option value="">Todas as vagas</option>
+      </select>
+    </div>
+    <div class="card" style="padding:0;overflow:hidden">
+      <table>
+        <thead>
+          <tr>
+            <th>Candidato</th>
+            <th>Vaga</th>
+            <th>Status</th>
+            <th>Cadastrado em</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody id="tbody-candidatos"></tbody>
+      </table>
+      <div id="empty-cands" class="empty hidden">Nenhum candidato encontrado.</div>
+      <div id="loading-cands" class="empty"><span class="spinner"></span> Carregando...</div>
+    </div>
+  </div>
+
+  <!-- Aba Vagas -->
+  <div id="panel-vagas" class="panel">
+    <div style="display:flex;justify-content:flex-end;margin-bottom:1rem">
+      <button class="btn btn-primary btn-sm" onclick="abrirModal('vaga')">+ Nova vaga</button>
+    </div>
+    <div class="card" style="padding:0;overflow:hidden">
+      <table>
+        <thead><tr><th>Vaga</th><th>Departamento</th><th>Candidatos</th><th>Aprovados</th><th>Ações</th></tr></thead>
+        <tbody id="tbody-vagas"></tbody>
+      </table>
+      <div id="empty-vagas" class="empty hidden">Nenhuma vaga cadastrada ainda.</div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Novo Candidato -->
+<div id="modal-novo" class="modal-overlay hidden" onclick="fecharOverlay(event,'novo')">
+  <div class="modal">
+    <h3>Novo candidato</h3>
+    <div class="form-grid">
+      <div class="form-row"><label>Nome completo *</label><input id="f-nome" type="text" placeholder="Maria Silva"></div>
+      <div class="form-row"><label>WhatsApp *</label><input id="f-phone" type="text" placeholder="(92) 9xxxx-xxxx"></div>
+    </div>
+    <div class="form-row"><label>E-mail</label><input id="f-email" type="email" placeholder="candidato@email.com"></div>
+    <div class="form-row">
+      <label>Vaga pretendida *</label>
+      <select id="f-vaga-sel"><option value="">Selecione uma vaga...</option></select>
+    </div>
+    <div class="form-row"><input id="f-vaga-livre" type="text" placeholder="Ou digite a vaga manualmente..."></div>
+    <div class="form-row"><label>Origem do currículo</label>
+      <select id="f-origem">
+        <option>E-mail</option><option>LinkedIn</option><option>Indicação</option><option>Site</option><option>Outro</option>
+      </select>
+    </div>
+    <div class="form-row"><label>Observações internas</label><textarea id="f-obs" placeholder="Anotações sobre o perfil..."></textarea></div>
+    <div class="modal-footer">
+      <button class="btn" onclick="fecharModal('novo')">Cancelar</button>
+      <button class="btn btn-primary" onclick="cadastrarCandidato()">Cadastrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Detalhe -->
+<div id="modal-detalhe" class="modal-overlay hidden" onclick="fecharOverlay(event,'detalhe')">
+  <div class="modal" style="max-width:520px">
+    <h3 id="det-nome"></h3>
+    <div class="detail-section">
+      <div class="detail-grid">
+        <div class="detail-item"><div class="lbl">WhatsApp</div><div class="val"><a id="det-wpp" class="wpp-link" href="#" target="_blank">—</a></div></div>
+        <div class="detail-item"><div class="lbl">E-mail</div><div class="val" id="det-email">—</div></div>
+        <div class="detail-item"><div class="lbl">Vaga</div><div class="val" id="det-vaga">—</div></div>
+        <div class="detail-item"><div class="lbl">Origem</div><div class="val" id="det-origem">—</div></div>
+        <div class="detail-item"><div class="lbl">Status</div><div class="val" id="det-status">—</div></div>
+        <div class="detail-item"><div class="lbl">Cadastrado em</div><div class="val" id="det-data">—</div></div>
+      </div>
+    </div>
+    <div class="detail-section">
+      <h4>Histórico de acompanhamento</h4>
+      <div id="det-hist"></div>
+    </div>
+    <div class="form-row">
+      <label>Adicionar registro</label>
+      <textarea id="det-novo-hist" rows="2" placeholder="Ex: Candidato confirmou interesse, entrevista marcada para..."></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-danger btn-sm" onclick="excluirCandidato()">Excluir</button>
+      <button class="btn btn-sm" onclick="fecharModal('detalhe')">Fechar</button>
+      <button class="btn btn-sm" onclick="abrirStatus()">Alterar status</button>
+      <button class="btn btn-primary btn-sm" onclick="salvarHist()">Salvar registro</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Status -->
+<div id="modal-status" class="modal-overlay hidden" onclick="fecharOverlay(event,'status')">
+  <div class="modal">
+    <h3>Alterar status</h3>
+    <div id="s-nome" style="font-size:13px;color:var(--muted);margin-bottom:1rem"></div>
+    <div class="form-row"><label>Novo status</label>
+      <select id="s-status">
+        <option value="novo">Novo</option>
+        <option value="contatado">Contatado</option>
+        <option value="triagem">Em triagem</option>
+        <option value="entrevista">Entrevista agendada</option>
+        <option value="aprovado">Aprovado</option>
+        <option value="reprovado">Reprovado</option>
+        <option value="desistiu">Desistiu</option>
+      </select>
+    </div>
+    <div class="form-row"><label>Data da entrevista (se aplicável)</label><input type="datetime-local" id="s-data-ent"></div>
+    <div class="form-row"><label>Observação</label><textarea id="s-obs" rows="2" placeholder="Opcional"></textarea></div>
+    <div class="modal-footer">
+      <button class="btn" onclick="fecharModal('status')">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarStatus()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Nova Vaga -->
+<div id="modal-vaga" class="modal-overlay hidden" onclick="fecharOverlay(event,'vaga')">
+  <div class="modal">
+    <h3>Nova vaga</h3>
+    <div class="form-row"><label>Nome da vaga *</label><input id="v-nome" type="text" placeholder="Ex: Analista de RH Pleno"></div>
+    <div class="form-row"><label>Departamento</label><input id="v-depto" type="text" placeholder="Ex: Recursos Humanos"></div>
+    <div class="form-row"><label>Descrição / requisitos</label><textarea id="v-desc" rows="3" placeholder="Principais requisitos..."></textarea></div>
+    <div class="modal-footer">
+      <button class="btn" onclick="fecharModal('vaga')">Cancelar</button>
+      <button class="btn btn-primary" onclick="cadastrarVaga()">Cadastrar vaga</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = '';  // deixar vazio — backend serve o frontend no mesmo endereço
+let ativo = null;
+let todosOsCandidatos = [];
+
+// ─── UTILS ──────────────────────────────────────────
+function fmtData(d) {
+  if (!d) return '—';
+  const dt = new Date(d + (d.length === 10 ? 'T00:00:00' : ''));
+  return dt.toLocaleDateString('pt-BR');
+}
+function fmtPhone(p) { return (p || '').replace(/\D/g, ''); }
+function labelStatus(s) {
+  return { novo:'Novo', contatado:'Contatado', triagem:'Em triagem', entrevista:'Entrevista', aprovado:'Aprovado', reprovado:'Reprovado', desistiu:'Desistiu' }[s] || s;
+}
+async function api(path, opts = {}) {
+  const r = await fetch(API + '/api' + path, {
+    headers: { 'Content-Type': 'application/json' },
+    ...opts,
+    body: opts.body ? JSON.stringify(opts.body) : undefined
+  });
+  if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(e.erro || r.status); }
+  return r.json();
+}
+function alerta(msg, tipo = 'success') {
+  const el = document.getElementById('alert-global');
+  el.className = 'alert alert-' + tipo;
+  el.textContent = msg;
+  el.classList.remove('hidden');
+  setTimeout(() => el.classList.add('hidden'), 4000);
+}
+function abrirModal(id) { document.getElementById('modal-' + id).classList.remove('hidden'); }
+function fecharModal(id) { document.getElementById('modal-' + id).classList.add('hidden'); }
+function fecharOverlay(e, id) { if (e.target === document.getElementById('modal-' + id)) fecharModal(id); }
+function trocarAba(id, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('panel-' + id).classList.add('active');
+  if (id === 'vagas') carregarVagas();
+}
+
+// ─── MÉTRICAS ───────────────────────────────────────
+async function carregarMetricas() {
+  try {
+    const m = await api('/metricas');
+    document.getElementById('m-total').textContent = m.total;
+    document.getElementById('m-novos').textContent = m.novos;
+    document.getElementById('m-entrevista').textContent = m.entrevista;
+    document.getElementById('m-aprovado').textContent = m.aprovados;
+  } catch (e) {}
+}
+
+// ─── CANDIDATOS ─────────────────────────────────────
+async function buscarCandidatos() {
+  const q = document.getElementById('busca').value;
+  const status = document.getElementById('filtro-status').value;
+  const vaga = document.getElementById('filtro-vaga').value;
+  const params = new URLSearchParams();
+  if (q) params.set('q', q);
+  if (status) params.set('status', status);
+  if (vaga) params.set('vaga', vaga);
+  document.getElementById('loading-cands').classList.remove('hidden');
+  document.getElementById('empty-cands').classList.add('hidden');
+  try {
+    const lista = await api('/candidatos?' + params);
+    todosOsCandidatos = lista;
+    renderCandidatos(lista);
+    atualizarFiltroVagas(lista);
+  } catch (e) { alerta('Erro ao carregar candidatos.', 'error'); }
+  document.getElementById('loading-cands').classList.add('hidden');
+}
+
+function atualizarFiltroVagas(lista) {
+  const vagas = [...new Set(lista.map(c => c.vaga))].sort();
+  const sel = document.getElementById('filtro-vaga');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">Todas as vagas</option>' + vagas.map(v => `<option value="${v}"${v===cur?' selected':''}>${v}</option>`).join('');
+}
+
+function renderCandidatos(lista) {
+  const tbody = document.getElementById('tbody-candidatos');
+  const empty = document.getElementById('empty-cands');
+  if (!lista.length) { tbody.innerHTML = ''; empty.classList.remove('hidden'); return; }
+  empty.classList.add('hidden');
+  tbody.innerHTML = lista.map(c => `
+    <tr onclick="abrirDetalhe(${c.id})">
+      <td>
+        <div style="font-weight:600">${c.nome}</div>
+        <div style="font-size:11px;color:var(--muted)">${c.email || c.phone}</div>
+      </td>
+      <td><span class="tag">${c.vaga}</span></td>
+      <td><span class="badge badge-${c.status}">${labelStatus(c.status)}</span></td>
+      <td style="color:var(--muted)">${fmtData(c.data_cadastro)}</td>
+      <td onclick="event.stopPropagation()">
+        <div style="display:flex;gap:6px">
+          <a href="https://wa.me/55${fmtPhone(c.phone)}" target="_blank" class="btn btn-sm btn-wpp">WhatsApp</a>
+          <button class="btn btn-sm" onclick="abrirDetalheStatus(${c.id})">Status</button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+}
+
+async function cadastrarCandidato() {
+  const nome = document.getElementById('f-nome').value.trim();
+  const phone = document.getElementById('f-phone').value.trim();
+  const vagaSel = document.getElementById('f-vaga-sel').value;
+  const vagaLivre = document.getElementById('f-vaga-livre').value.trim();
+  const vaga = vagaLivre || vagaSel;
+  if (!nome || !phone || !vaga) { alerta('Preencha nome, WhatsApp e vaga.', 'error'); return; }
+  try {
+    await api('/candidatos', { method: 'POST', body: { nome, phone, email: document.getElementById('f-email').value.trim(), vaga, origem: document.getElementById('f-origem').value, obs: document.getElementById('f-obs').value.trim() } });
+    fecharModal('novo');
+    ['f-nome','f-phone','f-email','f-vaga-livre','f-obs'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('f-vaga-sel').value = '';
+    alerta(`Candidato ${nome} cadastrado com sucesso!`);
+    buscarCandidatos(); carregarMetricas();
+  } catch (e) { alerta('Erro: ' + e.message, 'error'); }
+}
+
+async function abrirDetalhe(id) {
+  ativo = todosOsCandidatos.find(c => c.id === id) || { id };
+  if (!ativo.nome) { try { ativo = await api('/candidatos?q='); } catch(e){} }
+  document.getElementById('det-nome').textContent = ativo.nome || '—';
+  document.getElementById('det-wpp').href = `https://wa.me/55${fmtPhone(ativo.phone)}`;
+  document.getElementById('det-wpp').textContent = ativo.phone || '—';
+  document.getElementById('det-email').textContent = ativo.email || '—';
+  document.getElementById('det-vaga').textContent = ativo.vaga || '—';
+  document.getElementById('det-origem').textContent = ativo.origem || '—';
+  document.getElementById('det-status').innerHTML = `<span class="badge badge-${ativo.status}">${labelStatus(ativo.status)}</span>`;
+  document.getElementById('det-data').textContent = fmtData(ativo.data_cadastro);
+  document.getElementById('det-novo-hist').value = '';
+  await carregarHist(id);
+  abrirModal('detalhe');
+}
+
+async function carregarHist(id) {
+  try {
+    const hist = await api(`/candidatos/${id}/historico`);
+    const el = document.getElementById('det-hist');
+    if (!hist.length) { el.innerHTML = '<div style="font-size:13px;color:var(--muted);padding:6px 0">Nenhum registro ainda.</div>'; return; }
+    el.innerHTML = hist.map(h => `<div class="hist-item"><div>${h.texto}</div><div class="hist-meta">${fmtData(h.criado_em)} ${h.criado_em ? new Date(h.criado_em).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) : ''}</div></div>`).join('');
+  } catch (e) {}
+}
+
+async function salvarHist() {
+  const txt = document.getElementById('det-novo-hist').value.trim();
+  if (!txt || !ativo) return;
+  try {
+    await api(`/candidatos/${ativo.id}/historico`, { method: 'POST', body: { texto: txt } });
+    document.getElementById('det-novo-hist').value = '';
+    await carregarHist(ativo.id);
+    alerta('Registro salvo!');
+  } catch (e) { alerta('Erro ao salvar.', 'error'); }
+}
+
+async function excluirCandidato() {
+  if (!confirm(`Excluir ${ativo.nome}? Esta ação não pode ser desfeita.`)) return;
+  try {
+    await api(`/candidatos/${ativo.id}`, { method: 'DELETE' });
+    fecharModal('detalhe');
+    alerta('Candidato removido.');
+    buscarCandidatos(); carregarMetricas();
+  } catch (e) { alerta('Erro ao excluir.', 'error'); }
+}
+
+function abrirDetalheStatus(id) {
+  ativo = todosOsCandidatos.find(c => c.id === id);
+  abrirStatus();
+}
+function abrirStatus() {
+  document.getElementById('s-nome').textContent = (ativo.nome || '') + ' · ' + (ativo.vaga || '');
+  document.getElementById('s-status').value = ativo.status || 'novo';
+  document.getElementById('s-obs').value = '';
+  document.getElementById('s-data-ent').value = '';
+  fecharModal('detalhe');
+  abrirModal('status');
+}
+async function salvarStatus() {
+  const novoStatus = document.getElementById('s-status').value;
+  const obs = document.getElementById('s-obs').value.trim();
+  const dtEnt = document.getElementById('s-data-ent').value;
+  try {
+    await api(`/candidatos/${ativo.id}`, { method: 'PUT', body: { status: novoStatus } });
+    let registro = `Status atualizado para: ${labelStatus(novoStatus)}`;
+    if (dtEnt) { const d = new Date(dtEnt); registro += ` · Entrevista: ${d.toLocaleDateString('pt-BR')} às ${d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}`; }
+    if (obs) registro += ` · ${obs}`;
+    await api(`/candidatos/${ativo.id}/historico`, { method: 'POST', body: { texto: registro } });
+    fecharModal('status');
+    alerta('Status atualizado!');
+    buscarCandidatos(); carregarMetricas();
+  } catch (e) { alerta('Erro ao salvar status.', 'error'); }
+}
+
+// ─── VAGAS ──────────────────────────────────────────
+async function carregarVagas() {
+  try {
+    const vagas = await api('/vagas');
+    const tbody = document.getElementById('tbody-vagas');
+    const empty = document.getElementById('empty-vagas');
+    if (!vagas.length) { tbody.innerHTML = ''; empty.classList.remove('hidden'); return; }
+    empty.classList.add('hidden');
+    const cands = await api('/candidatos');
+    tbody.innerHTML = vagas.map(v => {
+      const total = cands.filter(c => c.vaga === v.nome).length;
+      const aprov = cands.filter(c => c.vaga === v.nome && c.status === 'aprovado').length;
+      return `<tr>
+        <td><div style="font-weight:600">${v.nome}</div>${v.descricao ? `<div style="font-size:11px;color:var(--muted)">${v.descricao}</div>` : ''}</td>
+        <td>${v.departamento || '—'}</td><td>${total}</td><td>${aprov}</td>
+        <td><button class="btn btn-sm btn-danger" onclick="excluirVaga(${v.id})">Remover</button></td>
+      </tr>`;
+    }).join('');
+    const sel = document.getElementById('f-vaga-sel');
+    sel.innerHTML = '<option value="">Selecione uma vaga...</option>' + vagas.map(v => `<option value="${v.nome}">${v.nome}</option>`).join('');
+  } catch (e) {}
+}
+
+async function cadastrarVaga() {
+  const nome = document.getElementById('v-nome').value.trim();
+  if (!nome) { alerta('Informe o nome da vaga.', 'error'); return; }
+  try {
+    await api('/vagas', { method: 'POST', body: { nome, departamento: document.getElementById('v-depto').value.trim(), descricao: document.getElementById('v-desc').value.trim() } });
+    fecharModal('vaga');
+    ['v-nome','v-depto','v-desc'].forEach(id => document.getElementById(id).value = '');
+    alerta('Vaga cadastrada!');
+    carregarVagas();
+  } catch (e) { alerta('Erro ao cadastrar vaga.', 'error'); }
+}
+
+async function excluirVaga(id) {
+  if (!confirm('Remover esta vaga?')) return;
+  try { await api('/vagas/' + id, { method: 'DELETE' }); alerta('Vaga removida.'); carregarVagas(); }
+  catch (e) { alerta('Erro ao remover.', 'error'); }
+}
+
+// ─── INIT ────────────────────────────────────────────
+carregarMetricas();
+buscarCandidatos();
+carregarVagas();
+</script>
+</body>
+</html>
