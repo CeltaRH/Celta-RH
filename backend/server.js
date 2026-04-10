@@ -10,8 +10,7 @@ app.use(cors());
 app.use(express.json());
 
 // Servir frontend estático
-app.use(express.static(path.join(__dirname, '../frontend')));
-
+app.use(express.static(path.join(__dirname, '..', 'frontend')));
 // Banco de dados SQLite
 const db = new Database(process.env.DB_PATH || path.join(__dirname, 'celta.db'));
 
@@ -131,7 +130,7 @@ app.get('/api/metricas', (req, res) => {
 
 // Rota catch-all → frontend
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../frontend/index.html'));
+res.sendFile(path.join(__dirname, '..', 'frontend', 'index.html'));
 });
 
 app.listen(PORT, () => console.log(`Celta RH rodando na porta ${PORT}`));
